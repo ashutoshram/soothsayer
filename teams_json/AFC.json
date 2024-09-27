@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "athletes": [],
+    "team": {
+        "id": "31",
+        "abbreviation": "AFC",
+        "location": "Afc",
+        "displayName": "Afc",
+        "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/afc.png",
+        "seasonSummary": "2024"
+    }
+}

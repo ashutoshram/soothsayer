@@ -1,0 +1,12 @@
+{
+    "status": "success",
+    "athletes": [],
+    "team": {
+        "id": "32",
+        "abbreviation": "NFC",
+        "location": "Nfc",
+        "displayName": "Nfc",
+        "logo": "https://a.espncdn.com/i/teamlogos/nfl/500/nfc.png",
+        "seasonSummary": "2024"
+    }
+}
