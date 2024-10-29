@@ -46,6 +46,7 @@ player_appearances = {}
 text_queries = ["NBA Player", "Referee", "Person", "Stephen Curry"]
 
 # Process each frame of the video
+frame_idx = 0
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -77,7 +78,7 @@ while cap.isOpened():
 
         # Check each detection
         for box, score, label in zip(boxes, scores, labels):
-            if text_queries[label] == "Stephen Curry" and score > detection_threshold:
+            if text_queries[label] == "NBA Player" and score > detection_threshold:
                 # Convert box to absolute coordinates
                 x_min, y_min, x_max, y_max = map(int, box.tolist())
                 
@@ -137,6 +138,8 @@ while cap.isOpened():
     cv2.imshow("Court Tracking", frame_with_tracking)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
+
+    frame_idx += 1
 # Release resources
 cap.release()
 out.release()
