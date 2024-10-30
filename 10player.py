@@ -6,6 +6,7 @@ from PIL import Image
 from ultralytics import YOLO
 import supervision as sv
 from supervision import BoxAnnotator, TraceAnnotator
+from collections import defaultdict
 
 # Initialize OWL-ViT and YOLOv8 models
 processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
@@ -29,9 +30,14 @@ label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
 
 # Detection parameters
 detection_threshold = 0.3
-frame_skip = 5  # Process every 5th frame for efficiency
+frame_skip = 50  # Process every 5th frame for efficiency
 confirmation_threshold = 0.5  # IoU threshold for confirmation
 text_queries = ["NBA Player"]
+
+# Dictionary to keep track of frame counts for each player
+track_frame_counts = defaultdict(int)  # Maps tracker_id -> frame count
+min_frames_to_confirm = 30  # Minimum frames a player needs to be tracked to be considered confirmed
+max_players = 10  # Maximum number of players to track
 
 # Process each frame of the video
 frame_idx = 0
@@ -100,16 +106,36 @@ while cap.isOpened():
     if len(detections.xyxy) > 0:  # Only track if there are confirmed detections
         tracked_detections = tracker.update_with_detections(detections)
 
+        # Update frame count for each tracked player
+        for tracker_id in tracked_detections.tracker_id:
+            track_frame_counts[tracker_id] += 1
+
+        # Filter out players who have not been tracked for enough frames and limit to 10 players
+        confirmed_tracked_detections = sv.Detections(
+            xyxy=tracked_detections.xyxy[
+                [track_frame_counts[tracker_id] >= min_frames_to_confirm for tracker_id in tracked_detections.tracker_id]
+            ][:max_players],
+            confidence=tracked_detections.confidence[
+                [track_frame_counts[tracker_id] >= min_frames_to_confirm for tracker_id in tracked_detections.tracker_id]
+            ][:max_players],
+            class_id=tracked_detections.class_id[
+                [track_frame_counts[tracker_id] >= min_frames_to_confirm for tracker_id in tracked_detections.tracker_id]
+            ][:max_players],
+            tracker_id=tracked_detections.tracker_id[
+                [track_frame_counts[tracker_id] >= min_frames_to_confirm for tracker_id in tracked_detections.tracker_id]
+            ][:max_players]
+        )
+
         # Annotate frame with confirmed tracked detections
         annotated_frame = frame.copy()  # Start with a clean frame
         annotated_frame = trace_annotator.annotate(
             scene=annotated_frame,
-            detections=tracked_detections
+            detections=confirmed_tracked_detections
         )
         annotated_frame = label_annotator.annotate(
             scene=annotated_frame,
-            detections=tracked_detections,
-            labels=[f"Player {tracker_id}" for tracker_id in tracked_detections.tracker_id]
+            detections=confirmed_tracked_detections,
+            labels=[f"Player {tracker_id}" for tracker_id in confirmed_tracked_detections.tracker_id]
         )
 
         # Write annotated frame to output video
